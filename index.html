@@ -1,0 +1,279 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <title>Xp WEather (XPWT)</title>
+
+  <meta charset="utf-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+  <style>
+ 
+
+    img {
+
+      pointer-events: none;
+
+    }
+
+
+
+    .navbar {
+
+      margin-bottom: 05px;
+
+      border-radius: 0;
+
+    }
+
+    
+
+     .jumbotron {
+
+       margin-bottom: 0;
+
+	   padding-top: 00px;
+
+       padding-bottom: 00px;
+
+       margin-bottom: 00px;
+
+       color: inherit;
+
+       background-color: #eee;
+
+    }
+
+   
+
+     footer {
+
+      background-color: #f2f2f2;
+
+      padding-top: 20px;
+
+	  padding-bottom: 10px;
+
+      bottom: 0;
+
+      position: fixed;
+
+      width: 100%;
+
+	  color: black;
+
+	  text-align: center;
+
+    }
+
+	
+
+	.h1, h1 {
+
+    font-size: 25px;
+
+	}
+
+	
+
+	.jumbotron p {
+
+		margin-bottom: 15px;
+
+		font-size: 15px;
+
+		font-weight: 200;
+
+}
+
+	.panel-heading {
+
+		padding: 10px 15px;
+
+		border-bottom: 1px solid transparent;
+
+		border-top-left-radius: 3px;
+
+		border-top-right-radius: 3px;
+
+		text-align: center;
+
+	}
+
+ 
+
+  </style>
+
+</head>
+
+<body>
+
+
+
+<div class="jumbotron">
+
+  <div class="container text-center">
+
+    <h1>XP WEATHER</h1> 
+
+	<h4>	An Experienced Weather Team </h4>
+
+  </div>
+
+</div>
+
+   
+
+
+
+<nav class="navbar navbar-inverse">
+
+  <div class="container-fluid">
+
+    <div class="navbar-header">
+
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+
+        <span class="icon-bar"></span>
+
+        <span class="icon-bar"></span>
+
+        <span class="icon-bar"></span>                        
+
+      </button>
+
+      <a class="navbar-brand" href="#"></a>
+
+    </div>
+
+    <div class="collapse navbar-collapse" id="myNavbar">
+
+      <ul class="nav navbar-nav">
+
+        <li class="active"><a href="index.html">Home</a></li>
+
+		 <li><a href="#">Current Weather</a></li>
+
+        <li><a href="#">Satelite Image</a></li>
+
+        <li><a href="#">Contact</a></li>
+
+      </ul>
+
+      <ul class="nav navbar-nav navbar-right">
+      <li><a href="#"><span class="glyphicon glyphicon-user"></span> Admin Panel</a></li>
+      <li><a href="#"><span class="glyphicon glyphicon-user"></span>
+      </a></li>
+
+      </ul>
+
+    </div>
+
+  </div>
+
+</nav>
+
+
+   <style> 
+
+      marquee {
+
+        width: 100%;
+
+        padding: 10px 0;
+
+        background-color: lightblue;
+
+      }
+
+    </style>
+
+    <marquee direction="scroll"><b><?php echo $info; ?></b></marquee>
+
+    <br><br>
+
+
+
+<div class="container">    
+
+  <div class="row">
+
+    <div class="col-sm-4">
+
+      <div class="panel panel-primary">
+
+        <div class="panel-heading">ALL CITY TEMP</div>
+
+        <div class="panel-body"><img src="wx/atemp.jpg?t=<?php echo time(); ?>" class="img-responsive" style="width:100%" alt="Image"></div>
+
+        <div class="panel-footer"><a href="images.php">Get more images</a></div>
+
+      </div>
+
+    </div>
+
+    <div class="col-sm-4"> 
+
+      <div class="panel panel-danger">
+
+        <div class="panel-heading">ALL CITY WIND SPEED</div>
+
+        <div class="panel-body"><img src="wx/awind.jpg?t=<?php echo time(); ?>" class="img-responsive" style="width:100%" alt="Image"></div>
+
+        <div class="panel-footer"><a href="images.php">Get more images</a></div>
+
+      </div>
+
+    </div>
+
+    <div class="col-sm-4"> 
+
+      <div class="panel panel-success">
+
+        <div class="panel-heading">MJO OBSERVATION DIAGRAM</div>
+
+        <div class="panel-body"><img src="wx/mjo.jpg?t=<?php echo time(); ?>" class="img-responsive" style="width:100%" alt="Image"></div>
+
+        <div class="panel-footer"><a href="images.php">Get more images</a></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div><br>
+
+
+
+
+<br><br><br>
+
+<footer class="container-fluid text-center">
+
+<p><b>Copyright © <span id="demo"></span> All Rights Reserved by XPWT.</b></p>  
+
+  </form>
+
+</footer>
+
+
+<script>
+const d = new Date();
+document.getElementById("demo").innerHTML = d.getFullYear();
+</script>
+
+</body>
+
+</html>
+
