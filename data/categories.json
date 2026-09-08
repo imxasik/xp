@@ -25,6 +25,31 @@
     "icon": "🎁"
   },
   {
+    "id": "sms",
+    "name": "এসএমএস",
+    "icon": "✉️"
+  },
+  {
+    "id": "voice",
+    "name": "ভয়েস",
+    "icon": "🎙️"
+  },
+  {
+    "id": "bundle",
+    "name": "বান্ডেল",
+    "icon": "📦"
+  },
+  {
+    "id": "social",
+    "name": "সোশ্যাল প্যাক",
+    "icon": "💬"
+  },
+  {
+    "id": "night",
+    "name": "নাইট প্যাক",
+    "icon": "🌙"
+  },
+  {
     "id": "recharge",
     "name": "রিচার্জ",
     "icon": "💰"

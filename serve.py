@@ -91,6 +91,11 @@ def seed():
             {"id":"internet","name":"ইন্টারনেট","icon":"📶"},
             {"id":"minutes","name":"মিনিট","icon":"📞"},
             {"id":"combo","name":"কম্বো","icon":"🎁"},
+            {"id":"sms","name":"এসএমএস","icon":"✉️"},
+            {"id":"voice","name":"ভয়েস","icon":"🎙️"},
+            {"id":"bundle","name":"বান্ডেল","icon":"📦"},
+            {"id":"social","name":"সোশ্যাল প্যাক","icon":"💬"},
+            {"id":"night","name":"নাইট প্যাক","icon":"🌙"},
             {"id":"recharge","name":"রিচার্জ","icon":"💰"},
         ])
     if not read("gateways"):
@@ -118,13 +123,25 @@ def seed():
             pack("gp","drive","জিপি ড্রাইভ ১৫ জিবি","ড্রাইভ অফার, ৩০ দিন",299,249,"৩০ দিন"),
             pack("gp","combo","জিপি কম্বো ১৯৯","১০ জিবি + ১০০ মিনিট",199,175,"৩০ দিন"),
             pack("gp","minutes","জিপি ১০০ মিনিট","যেকোনো নম্বরে",58,52,"৭ দিন"),
+            pack("gp","sms","জিপি ৫০০ এসএমএস","যেকোনো অপারেটরে",28,24,"৭ দিন"),
+            pack("gp","voice","জিপি ভয়েস ৩০০ মিনিট","জিপি-টু-জিপি",75,65,"৭ দিন"),
+            pack("gp","bundle","জিপি বান্ডেল ৩৪৯","২০ জিবি + ২০০ মিনিট + ৫০০ এসএমএস",349,299,"৩০ দিন"),
+            pack("gp","social","জিপি সোশ্যাল ৪৯","ফেসবুক + মেসেঞ্জার",49,42,"৭ দিন"),
+            pack("gp","night","জিপি নাইট ১০ জিবি","১২টা-৬টা",48,42,"৭ দিন"),
             pack("robi","regular","রবি ৮ জিবি","৮ জিবি, ৩০ দিন",198,175,"৩০ দিন"),
             pack("robi","drive","রবি ড্রাইভ ২৫ জিবি","ড্রাইভ স্পেশাল",399,329,"৩০ দিন"),
+            pack("robi","combo","রবি কম্বো ১৪৯","৫ জিবি + ৫০ মিনিট + ২০০ এসএমএস",149,129,"৩০ দিন"),
+            pack("robi","social","রবি সোশ্যাল ৩৯","ফেসবুক + ইনস্টা + টিকটক",39,33,"৭ দিন"),
             pack("airtel","internet","এয়ারটেল ১০ জিবি","৪জি ডাটা",179,159,"৩০ দিন"),
+            pack("airtel","minutes","এয়ারটেল ২০০ মিনিট","যেকোনো অপারেটরে",89,78,"৭ দিন"),
+            pack("airtel","sms","এয়ারটেল ১০০০ এসএমএস","অল নেটওয়ার্ক",49,42,"৩০ দিন"),
             pack("bl","regular","বিএল ৬ জিবি","৬ জিবি বান্ডেল",129,115,"১৫ দিন"),
             pack("bl","drive","বিএল ড্রাইভ ৪০ জিবি","ড্রাইভ মেগা",499,419,"৩০ দিন"),
+            pack("bl","voice","বিএল ভয়েস ৫০০ মিনিট","বিএল-টু-বিএল",99,85,"৭ দিন"),
+            pack("bl","bundle","বিএল বান্ডেল ১৯৯","১০ জিবি + ১০০ মিনিট + ৩০০ এসএমএস",199,169,"৩০ দিন"),
             pack("tt","internet","টেলিটক ৫ জিবি","সরকারি নেটওয়ার্ক",99,92,"৩০ দিন"),
-            pack("gp","internet","জিপি নাইট ১০ জিবি","১২টা-৬টা",48,42,"৭ দিন"),
+            pack("tt","combo","টেলিটক কম্বো ৯৯","৩ জিবি + ৩০ মিনিট + ১০০ এসএমএস",99,88,"৩০ দিন"),
+            pack("tt","night","টেলিটক নাইট ২০ জিবি","১২টা-৭টা",79,69,"৭ দিন"),
         ])
     for f in ["users","orders","invoices","wallet"]:
         if not jpath(f).exists():
@@ -234,10 +251,19 @@ class H(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         u = urlparse(self.path)
+        # Make sure a session cookie exists for top-level HTML pages so the
+        # JS fetch() right after page load reuses the same SID.
+        existing_sid = None
+        c = self.headers.get("Cookie") or ""
+        m = re.search(r"XPTEL=([A-Za-z0-9]+)", c)
+        if m and m.group(1) in SESS:
+            existing_sid = m.group(1)
+        page_sid = existing_sid
+        if u.path in ("/", "/index.php", "/admin.php") and not page_sid:
+            page_sid = secrets.token_hex(12)
+            SESS[page_sid] = {}
         if u.path in ("/", "/index.php"):
-            self.path = "/index.php.html" if False else "/index.php"
             html = (ROOT / "index.php").read_text("utf-8")
-            # strip php, keep html after ?>
             if "?>" in html:
                 html = html.split("?>", 1)[1]
             html = re.sub(r"<\?php[\s\S]*?\?>", "", html)
@@ -245,6 +271,8 @@ class H(SimpleHTTPRequestHandler):
             b = html.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            if not existing_sid:
+                self.send_header("Set-Cookie", f"XPTEL={page_sid}; Path=/; HttpOnly")
             self.send_header("Content-Length", str(len(b)))
             self.end_headers()
             self.wfile.write(b)
@@ -257,6 +285,8 @@ class H(SimpleHTTPRequestHandler):
             b = html.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            if not existing_sid:
+                self.send_header("Set-Cookie", f"XPTEL={page_sid}; Path=/; HttpOnly")
             self.send_header("Content-Length", str(len(b)))
             self.end_headers()
             self.wfile.write(b)
