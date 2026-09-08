@@ -143,7 +143,7 @@ def seed():
             pack("tt","combo","টেলিটক কম্বো ৯৯","৩ জিবি + ৩০ মিনিট + ১০০ এসএমএস",99,88,"৩০ দিন"),
             pack("tt","night","টেলিটক নাইট ২০ জিবি","১২টা-৭টা",79,69,"৭ দিন"),
         ])
-    for f in ["users","orders","invoices","wallet"]:
+    for f in ["users","orders","invoices","wallet","notifications"]:
         if not jpath(f).exists():
             write(f, [])
 
@@ -167,12 +167,126 @@ def wallet_debit(uid, amount, note, ref=""):
 def settings():
     return read("settings", {})
 
+# ---------- notifications ----------
+def notify(to, user_id, typ, title, body="", ref=None):
+    n = {"id":xid("n_"),"to":to,"user_id":user_id,"type":typ,"title":title,"body":body,"ref":ref or {},"created_at":now(),"ts":time.time()}
+    with LOCK:
+        allr = read("notifications")
+        allr.append(n)
+        if len(allr) > 1500:
+            allr = allr[-1500:]
+        write("notifications", allr)
+    return n
+
+def notify_admin(typ, title, body="", ref=None):
+    return notify("admin", None, typ, title, body, ref)
+
+def notify_user(uid, typ, title, body="", ref=None):
+    return notify("user", uid, typ, title, body, ref)
+
+def notifs_for_user(uid, limit=50):
+    lst = [n for n in read("notifications") if n.get("to")=="all" or (uid and n.get("to")=="user" and n.get("user_id")==uid)]
+    lst.reverse()
+    return lst[:limit]
+
+def notifs_for_admin(limit=100):
+    lst = [n for n in read("notifications") if n.get("to") in ("admin","all")]
+    lst.reverse()
+    return lst[:limit]
+
+def notifs_unread(lst, seen):
+    if not seen:
+        return len(lst)
+    if isinstance(seen, (int, float)):
+        return sum(1 for n in lst if float(n.get("ts") or 0) > float(seen))
+    return sum(1 for n in lst if (n.get("created_at") or "") > str(seen))
+
+def seen_of(acct):
+    return acct.get("notif_seen_ts") or acct.get("notif_seen_at")
+
+def seen_mark(x):
+    return {**x, "notif_seen_at": now(), "notif_seen_ts": time.time()}
+
+# ---------- service hours ----------
+BN = str.maketrans("0123456789", "০১২৩৪৫৬৭৮৯")
+def bn_clock(hhmm):
+    try:
+        h, m = [int(x) for x in (hhmm + ":0").split(":")[:2]]
+    except Exception:
+        return hhmm
+    p = "সকাল" if 4 <= h < 12 else "দুপুর" if h < 15 else "বিকাল" if h < 18 else "সন্ধ্যা" if h < 20 else "রাত"
+    h12 = h % 12 or 12
+    t = f"{h12}:{m:02d}" if m else f"{h12}টা"
+    return p + " " + t.translate(BN)
+
+DEFAULT_SVC = {"enabled":True,"start":"08:00","end":"22:00","scope":"drive","avg_minutes":"৫–১৫",
+    "prayer_breaks":[{"name":"যোহর","start":"12:15","end":"12:50"},{"name":"আসর","start":"16:15","end":"16:45"},
+                     {"name":"মাগরিব","start":"18:05","end":"18:35"},{"name":"এশা","start":"19:30","end":"20:00"}]}
+
+def service_config():
+    c = dict(DEFAULT_SVC)
+    sh = settings().get("service_hours") or {}
+    if isinstance(sh, dict):
+        c.update(sh)
+    if not isinstance(c.get("prayer_breaks"), list):
+        c["prayer_breaks"] = DEFAULT_SVC["prayer_breaks"]
+    return c
+
+def _mins(hhmm):
+    try:
+        p = hhmm.split(":"); return int(p[0])*60 + int(p[1])
+    except Exception:
+        return 0
+
+def service_status():
+    import datetime, zoneinfo
+    try:
+        nowdt = datetime.datetime.now(zoneinfo.ZoneInfo("Asia/Dhaka"))
+    except Exception:
+        nowdt = datetime.datetime.now()
+    c = service_config()
+    cur = nowdt.strftime("%H:%M"); nm = _mins(cur)
+    out = {"enabled":bool(c["enabled"]),"state":"open","now":cur,"start":c["start"],"end":c["end"],"scope":c["scope"],
+           "avg_minutes":c["avg_minutes"],"resumes_at":None,"break_name":None,
+           "hours_label":bn_clock(c["start"])+" – "+bn_clock(c["end"]),"prayer_breaks":c["prayer_breaks"]}
+    if not c["enabled"]:
+        out["message"] = "সার্ভিস চালু আছে · সাধারণত " + c["avg_minutes"] + " মিনিটে অফার হিট হয়"
+        return out
+    if nm < _mins(c["start"]) or nm >= _mins(c["end"]):
+        out.update(state="closed", resumes_at=c["start"],
+                   message="সার্ভিস সময় " + out["hours_label"] + " · এখন অর্ডার দিলে " + bn_clock(c["start"]) + " থেকে সিরিয়াল অনুযায়ী হিট হবে")
+        return out
+    for b in c["prayer_breaks"]:
+        if _mins(b.get("start","00:00")) <= nm < _mins(b.get("end","00:00")):
+            out.update(state="prayer", resumes_at=b["end"], break_name=b.get("name","নামাজ"),
+                       message=b.get("name","নামাজ") + " নামাজের বিরতি চলছে · " + bn_clock(b["end"]) + " এর পর অর্ডার হিট হবে, একটু ধৈর্য ধরুন")
+            return out
+    out["message"] = "সার্ভিস চালু আছে · সাধারণত " + c["avg_minutes"] + " মিনিটে অফার হিট হয়"
+    return out
+
+def service_applies(offer):
+    c = service_config()
+    if not c.get("enabled"):
+        return False
+    if c.get("scope") == "all":
+        return True
+    return (offer or {}).get("category") == "drive"
+
+def order_summary_notify_user(fresh):
+    svc = service_status()
+    if fresh.get("status") == "completed":
+        notify_user(fresh["user_id"], "order", "অর্ডার সম্পন্ন ✅", f"{fresh['title']} → {fresh['number']}", {"order_id": fresh["id"]})
+    else:
+        notify_user(fresh["user_id"], "order", "পেমেন্ট পেয়েছি, প্রসেসিং চলছে ⏳", f"{fresh['title']} → {fresh['number']}। {svc.get('message','')}", {"order_id": fresh["id"]})
+
 def gw_methods():
     return [g for g in read("gateways") if g.get("enabled")]
 
 def fulfill(inv):
     if inv.get("purpose") == "wallet_topup":
         wallet_credit(inv["user_id"], float(inv["amount"]), "ওয়ালেট রিচার্জ", inv["id"])
+        notify_user(inv["user_id"], "wallet", f"ওয়ালেটে ৳{inv['amount']} যোগ হয়েছে ✅", "টপআপ কনফার্মড · " + str(inv.get("method","")).upper(), {"invoice_id": inv["id"]})
+        notify_admin("wallet", f"টপআপ কনফার্মড ৳{inv['amount']}", str(inv.get("method","")).upper() + " · " + (inv.get("trx_id") or "-"), {"invoice_id": inv["id"]})
     if inv.get("purpose") == "order" and (inv.get("meta") or {}).get("order_id"):
         order_mark_paid(inv["meta"]["order_id"])
 
@@ -182,6 +296,8 @@ def order_auto_process(order):
         return
     if order.get("status") != "processing":
         return
+    if order.get("manual"):
+        return
     if order.get("offer_id"):
         def mut(of):
             of = dict(of)
@@ -190,12 +306,15 @@ def order_auto_process(order):
             of["sold"] = int(of.get("sold") or 0) + 1
             return of
         update("offers", order["offer_id"], mut)
-    update("orders", order["id"], lambda o: {**o, "status":"completed","processed_at":now(),"auto":True})
+    update("orders", order["id"], lambda o: {**o, "status":"completed","processed_at":now(),"auto":True,"stock_counted":True})
 
 def order_mark_paid(oid):
     order = update("orders", oid, lambda o: {**o, "status":"processing"} if o.get("status")=="awaiting_payment" else o)
     if order:
         order_auto_process(order)
+        fresh = find("orders", lambda x: x["id"]==oid) or order
+        notify_admin("payment", "পেমেন্ট কনফার্মড: " + fresh["title"], f"{fresh['number']} · ৳{fresh['price']} — এখন অফার হিট করুন", {"order_id": oid})
+        order_summary_notify_user(fresh)
 
 def gw_invoice(user, amount, method, purpose, meta=None):
     gw = find("gateways", lambda g: g["code"]==method)
@@ -331,8 +450,11 @@ class H(SimpleHTTPRequestHandler):
 def handle(action, inp, sess, user_fn, admin_fn):
     if action == "boot":
         u = user_fn()
+        pub = dict(settings()); pub.pop("gateway_secret", None)
         return {"ok": True, "csrf": "ok", "user": u, "admin": bool(admin_fn()),
-                "settings": settings(), "operators": read("operators"),
+                "settings": pub, "service": service_status(),
+                "notif_unread": notifs_unread(notifs_for_user(u["id"]), seen_of(u)) if u else 0,
+                "operators": read("operators"),
                 "categories": read("categories"), "gateways": gw_methods(),
                 "banners": [b for b in read("banners") if b.get("active")],
                 "offers": [o for o in read("offers") if o.get("active")]}
@@ -355,6 +477,8 @@ def handle(action, inp, sess, user_fn, admin_fn):
         u = find("users", lambda x: x["phone"]==phone)
         if not u or u.get("password") != phash(inp.get("password") or ""):
             return {"ok": False, "error": "নম্বর বা পাসওয়ার্ড ভুল"}
+        if u.get("status", "active") != "active":
+            return {"ok": False, "error": "অ্যাকাউন্ট নিষ্ক্রিয়"}
         sess["uid"] = u["id"]
         uu = dict(u); uu.pop("password", None)
         return {"ok": True, "user": uu}
@@ -369,7 +493,18 @@ def handle(action, inp, sess, user_fn, admin_fn):
         orders.sort(key=lambda x: x.get("created_at",""), reverse=True)
         return {"ok": True, "user": u, "orders": orders,
                 "wallet": [w for w in read("wallet") if w["user_id"]==u["id"]],
-                "invoices": [i for i in read("invoices") if i["user_id"]==u["id"]]}
+                "invoices": [i for i in read("invoices") if i["user_id"]==u["id"]], "service": service_status()}
+    if action == "notifications":
+        u = user_fn()
+        if not u:
+            return {"ok": False, "error": "লগইন করুন"}, 401
+        lst = notifs_for_user(u["id"])
+        unread = notifs_unread(lst, seen_of(u))
+        if inp.get("mark_read"):
+            update("users", u["id"], seen_mark)
+        return {"ok": True, "list": lst, "unread": unread, "seen_at": u.get("notif_seen_at"), "seen_ts": u.get("notif_seen_ts") or 0, "service": service_status()}
+    if action == "service":
+        return {"ok": True, "service": service_status()}
     if action == "order":
         u = user_fn()
         if not u:
@@ -396,9 +531,12 @@ def handle(action, inp, sess, user_fn, admin_fn):
             title = f"{op['name']} রিচার্জ ৳{amount}"
             operator = op["code"]
             oid = None
+        offer_row = find("offers", lambda o: o["id"]==oid) if oid else None
+        svc = service_status()
         order = {"id":xid("ord_"),"user_id":u["id"],"type":typ,"offer_id":oid,"title":title,"operator":operator,
                  "number":number,"face_value":amount,"price":price,"status":"awaiting_payment","note":inp.get("note") or "",
-                 "created_at":now(),"processed_at":None}
+                 "created_at":now(),"processed_at":None,"manual":service_applies(offer_row),"service_state":svc["state"],
+                 "category":(offer_row or {}).get("category","recharge")}
         push("orders", order)
         inv = gw_invoice(u, price, method, "order", {"order_id": order["id"]})
         if not inv.get("ok"):
@@ -413,7 +551,17 @@ def handle(action, inp, sess, user_fn, admin_fn):
         if order["status"]=="processing":
             order_auto_process(order)
             order = find("orders", lambda x: x["id"]==order["id"]) or order
-        return {"ok": True, "order": order, "invoice": inv["invoice"]}
+        paid = order["status"] in ("processing","completed")
+        notify_admin("order", "নতুন অর্ডার: " + order["title"],
+                     f"{order['number']} · ৳{order['price']} · {u.get('name','')} ({u.get('phone','')})" + (" · পেইড" if paid else " · পেমেন্ট বাকি"),
+                     {"order_id": order["id"]})
+        if order["status"] == "completed":
+            notify_user(u["id"], "order", "অর্ডার সম্পন্ন ✅", f"{order['title']} → {order['number']}", {"order_id": order["id"]})
+        elif order["status"] == "processing":
+            notify_user(u["id"], "order", "অর্ডার গৃহীত, প্রসেসিং চলছে ⏳", f"{order['title']} → {order['number']}। {svc.get('message','')}", {"order_id": order["id"]})
+        else:
+            notify_user(u["id"], "payment", "পেমেন্ট বাকি", order["title"] + " — পেমেন্ট করে TrxID জমা দিন।", {"order_id": order["id"]})
+        return {"ok": True, "order": order, "invoice": inv["invoice"], "service": svc}
     if action == "pay_trx":
         u = user_fn()
         if not u:
@@ -437,6 +585,9 @@ def handle(action, inp, sess, user_fn, admin_fn):
         updated = update("invoices", inv["id"], mut)
         if status=="paid":
             fulfill(updated)
+        else:
+            notify_admin("payment", "পেমেন্ট রিভিউ দরকার", f"{str(inv['method']).upper()} ৳{inv['amount']} · TrxID {trx} · পে-কোড {inv['paycode']}", {"invoice_id": inv["id"]})
+            notify_user(u["id"], "payment", "TrxID জমা হয়েছে", "আমরা যাচাই করে দ্রুত কনফার্ম করব। ধৈর্য ধরার জন্য ধন্যবাদ।", {"invoice_id": inv["id"]})
         return {"ok": True, "invoice": updated}
     if action == "topup":
         u = user_fn()
@@ -463,7 +614,11 @@ def handle(action, inp, sess, user_fn, admin_fn):
         users = []
         for u in read("users"):
             uu=dict(u); uu.pop("password",None); users.append(uu)
-        return {"ok": True, "settings": settings(), "operators": read("operators"), "offers": read("offers"),
+        adm = dict(admin_fn()); adm.pop("password", None)
+        alist = notifs_for_admin()
+        return {"ok": True, "admin": adm, "service": service_status(), "notifications": alist,
+                "notif_unread": notifs_unread(alist, seen_of(adm)),
+                "settings": settings(), "operators": read("operators"), "offers": read("offers"),
                 "orders": list(reversed(read("orders"))), "users": users, "invoices": list(reversed(read("invoices"))),
                 "gateways": read("gateways"), "categories": read("categories"), "banners": read("banners"),
                 "wallet": list(reversed(read("wallet")))}
@@ -496,15 +651,90 @@ def handle(action, inp, sess, user_fn, admin_fn):
     if action == "admin_order":
         if not admin_fn():
             return {"ok": False}, 401
-        row = update("orders", inp.get("id"), lambda o: {**o, "status": inp.get("status") or "processing", "admin_note": inp.get("note") or "", "processed_at": now()})
+        status = inp.get("status") or "processing"; note = inp.get("note") or ""
+        oid = inp.get("id")
+        row = update("orders", oid, lambda o: {**o, "status": status, "admin_note": note,
+                     "processed_at": now() if status in ("completed","failed","cancelled") else o.get("processed_at")})
+        if row:
+            if status == "completed":
+                if row.get("offer_id") and not row.get("stock_counted"):
+                    def mut(of):
+                        of = dict(of)
+                        if int(of.get("stock") or 0) > 0: of["stock"] = int(of["stock"]) - 1
+                        of["sold"] = int(of.get("sold") or 0) + 1
+                        return of
+                    update("offers", row["offer_id"], mut)
+                    row = update("orders", oid, lambda o: {**o, "stock_counted": True}) or row
+                notify_user(row["user_id"], "order", "অফার হিট হয়েছে ✅", f"{row['title']} → {row['number']}" + (f" · {note}" if note else ""), {"order_id": oid})
+            elif status in ("failed", "cancelled"):
+                if row.get("invoice_id") and not row.get("refunded"):
+                    inv = find("invoices", lambda i: i["id"]==row["invoice_id"])
+                    if inv and inv.get("method")=="wallet" and inv.get("status")=="paid":
+                        wallet_credit(row["user_id"], float(row["price"]), "অর্ডার ফেরত: " + row["title"], oid)
+                        row = update("orders", oid, lambda o: {**o, "refunded": True}) or row
+                notify_user(row["user_id"], "order", "অর্ডার ব্যর্থ ❌", f"{row['title']} → {row['number']}" + (f" · কারণ: {note}" if note else "") + (" · টাকা ওয়ালেটে ফেরত দেওয়া হয়েছে" if row.get("refunded") else ""), {"order_id": oid})
+            else:
+                notify_user(row["user_id"], "order", "অর্ডার আপডেট: " + status, f"{row['title']} → {row['number']}", {"order_id": oid})
         return {"ok": bool(row), "order": row}
+    if action == "admin_notifications":
+        a = admin_fn()
+        if not a:
+            return {"ok": False}, 401
+        alist = notifs_for_admin(); unread = notifs_unread(alist, seen_of(a))
+        if inp.get("mark_read"):
+            update("admins", a["id"], seen_mark)
+        return {"ok": True, "list": alist, "unread": unread, "seen_at": a.get("notif_seen_at"), "seen_ts": a.get("notif_seen_ts") or 0}
+    if action == "admin_poll":
+        a = admin_fn()
+        if not a:
+            return {"ok": False}, 401
+        alist = notifs_for_admin()
+        return {"ok": True, "unread": notifs_unread(alist, seen_of(a)),
+                "pending_orders": sum(1 for o in read("orders") if o.get("status")=="processing"),
+                "review_invoices": sum(1 for i in read("invoices") if i.get("status")=="review"),
+                "latest": alist[0] if alist else None}
+    if action == "admin_broadcast":
+        if not admin_fn():
+            return {"ok": False}, 401
+        title = (inp.get("title") or "").strip(); body = (inp.get("body") or "").strip()
+        if not title:
+            return {"ok": False, "error": "শিরোনাম দিন"}
+        uid = (inp.get("user_id") or "").strip()
+        if uid:
+            return {"ok": True, "n": notify_user(uid, "info", title, body)}
+        return {"ok": True, "n": notify("all", None, "info", title, body)}
+    if action == "admin_delete_user":
+        if not admin_fn():
+            return {"ok": False}, 401
+        uid = inp.get("user_id") or ""
+        if not find("users", lambda x: x["id"]==uid):
+            return {"ok": False, "error": "ইউজার নেই"}
+        with LOCK:
+            write("users", [x for x in read("users") if x.get("id") != uid])
+            if inp.get("purge"):
+                for f in ("orders","invoices","wallet","notifications"):
+                    write(f, [r for r in read(f) if r.get("user_id") != uid])
+        users = []
+        for u in read("users"):
+            uu=dict(u); uu.pop("password",None); users.append(uu)
+        return {"ok": True, "users": users}
+    if action == "admin_user_status":
+        if not admin_fn():
+            return {"ok": False}, 401
+        st = "blocked" if inp.get("status")=="blocked" else "active"
+        row = update("users", inp.get("user_id") or "", lambda x: {**x, "status": st})
+        return {"ok": bool(row)}
     if action == "admin_invoice":
         if not admin_fn():
             return {"ok": False}, 401
-        approve = bool(inp.get("approve"))
-        updated = update("invoices", inp.get("id"), lambda i: {**i, "status": "paid" if approve else "rejected", "admin_note": inp.get("note") or "", "paid_at": now() if approve else i.get("paid_at")})
-        if approve and updated:
+        approve = bool(inp.get("approve")); note = inp.get("note") or ""
+        updated = update("invoices", inp.get("id"), lambda i: {**i, "status": "paid" if approve else "rejected", "admin_note": note, "paid_at": now() if approve else i.get("paid_at")})
+        if not updated:
+            return {"ok": False, "error": "ইনভয়েস নেই"}
+        if approve:
             fulfill(updated)
+        else:
+            notify_user(updated["user_id"], "payment", "পেমেন্ট রিজেক্ট ❌", f"{str(updated['method']).upper()} ৳{updated['amount']}" + (f" · কারণ: {note}" if note else "") + " — সঠিক TrxID দিয়ে আবার চেষ্টা করুন বা সাপোর্টে যোগাযোগ করুন।", {"invoice_id": updated["id"]})
         return {"ok": True, "invoice": updated}
     if action == "admin_settings":
         if not admin_fn():
@@ -515,6 +745,16 @@ def handle(action, inp, sess, user_fn, admin_fn):
         s["auto_approve_payments"]=bool(inp.get("auto_approve_payments"))
         s["auto_process_orders"]=bool(inp.get("auto_process_orders"))
         s["min_topup"]=float(inp.get("min_topup") or s.get("min_topup") or 20)
+        sh = inp.get("service_hours")
+        if isinstance(sh, dict):
+            hm = lambda v, d: v if re.match(r"^\d{2}:\d{2}$", str(v or "")) else d
+            clean = {"enabled": bool(sh.get("enabled")), "start": hm(sh.get("start"), "08:00"), "end": hm(sh.get("end"), "22:00"),
+                     "scope": "all" if sh.get("scope")=="all" else "drive",
+                     "avg_minutes": (str(sh.get("avg_minutes") or "").strip() or "৫–১৫"), "prayer_breaks": []}
+            for b in (sh.get("prayer_breaks") or []):
+                if isinstance(b, dict) and re.match(r"^\d{2}:\d{2}$", str(b.get("start") or "")) and re.match(r"^\d{2}:\d{2}$", str(b.get("end") or "")):
+                    clean["prayer_breaks"].append({"name": (str(b.get("name") or "").strip() or "নামাজ"), "start": b["start"], "end": b["end"]})
+            s["service_hours"] = clean
         write("settings", s)
         return {"ok": True, "settings": s}
     if action == "admin_gateways":

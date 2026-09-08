@@ -19,7 +19,10 @@ $s = xp_settings();
   <div class="app">
     <header class="top">
       <div class="brand"><div class="logo">XP</div><div><div id="bname">XP Telecom</div><div class="muted" style="font-size:11px">Telecom Store</div></div></div>
-      <a class="muted" href="admin.php">অ্যাডমিন</a>
+      <div class="acts">
+        <button class="bell" id="bell" title="নোটিফিকেশন">🔔<span class="cnt" id="bellcnt">0</span></button>
+        <a class="muted" href="admin.php">অ্যাডমিন</a>
+      </div>
     </header>
     <aside class="side desk">
       <button class="on" data-v="home">হোম</button>

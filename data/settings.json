@@ -3,10 +3,39 @@
   "tagline": "বাংলাদেশের সকল অপারেটর অফার ও রিচার্জ",
   "phone": "01700000000",
   "whatsapp": "01700000000",
-  "notice": "স্বাগতম! অফার কেনার আগে নম্বরটি ভালো করে চেক করুন।",
+  "notice": "ড্রাইভ অফার সকাল ৮টা – রাত ১০টা পর্যন্ত হিট হয়। নামাজের সময় সংক্ষিপ্ত বিরতি থাকে — ধৈর্য ধরার জন্য ধন্যবাদ।",
   "auto_approve_payments": true,
   "auto_process_orders": true,
   "gateway_secret": "xp-secret-change-me",
   "min_topup": 20,
-  "theme": "ocean"
+  "theme": "ocean",
+  "service_hours": {
+    "enabled": true,
+    "start": "08:00",
+    "end": "22:00",
+    "scope": "drive",
+    "avg_minutes": "৫–১৫",
+    "prayer_breaks": [
+      {
+        "name": "যোহর",
+        "start": "12:15",
+        "end": "12:50"
+      },
+      {
+        "name": "আসর",
+        "start": "16:15",
+        "end": "16:45"
+      },
+      {
+        "name": "মাগরিব",
+        "start": "18:05",
+        "end": "18:35"
+      },
+      {
+        "name": "এশা",
+        "start": "19:30",
+        "end": "20:00"
+      }
+    ]
+  }
 }
