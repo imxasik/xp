@@ -1,0 +1,32 @@
+[
+  {
+    "id": "regular",
+    "name": "রেগুলার অফার",
+    "icon": "⚡"
+  },
+  {
+    "id": "drive",
+    "name": "ড্রাইভ অফার",
+    "icon": "🚗"
+  },
+  {
+    "id": "internet",
+    "name": "ইন্টারনেট",
+    "icon": "📶"
+  },
+  {
+    "id": "minutes",
+    "name": "মিনিট",
+    "icon": "📞"
+  },
+  {
+    "id": "combo",
+    "name": "কম্বো",
+    "icon": "🎁"
+  },
+  {
+    "id": "recharge",
+    "name": "রিচার্জ",
+    "icon": "💰"
+  }
+]
