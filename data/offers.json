@@ -1,6 +1,6 @@
 [
   {
-    "id": "of_359d14850fe56a9feb1f",
+    "id": "of_600d7436b4286a9ffd5f",
     "operator": "gp",
     "category": "regular",
     "title": "জিপি ৫ জিবি",
@@ -12,10 +12,10 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_9ac7a3eee4f86a9feb1f",
+    "id": "of_ae3eb6799a5b6a9ffd5f",
     "operator": "gp",
     "category": "drive",
     "title": "জিপি ড্রাইভ ১৫ জিবি",
@@ -27,10 +27,10 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_7ae4e3930bb96a9feb1f",
+    "id": "of_e03a4f89444e6a9ffd5f",
     "operator": "gp",
     "category": "combo",
     "title": "জিপি কম্বো ১৯৯",
@@ -42,10 +42,10 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_5eb02d88fb1b6a9feb1f",
+    "id": "of_3e93151ba8926a9ffd5f",
     "operator": "gp",
     "category": "minutes",
     "title": "জিপি ১০০ মিনিট",
@@ -57,10 +57,85 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_aa852fecae846a9feb1f",
+    "id": "of_0f253fd5ade66a9ffd5f",
+    "operator": "gp",
+    "category": "sms",
+    "title": "জিপি ৫০০ এসএমএস",
+    "description": "যেকোনো অপারেটরে",
+    "face_value": 28,
+    "price": 24,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_dea7466871116a9ffd5f",
+    "operator": "gp",
+    "category": "voice",
+    "title": "জিপি ভয়েস ৩০০ মিনিট",
+    "description": "জিপি-টু-জিপি",
+    "face_value": 75,
+    "price": 65,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_cad3837133da6a9ffd5f",
+    "operator": "gp",
+    "category": "bundle",
+    "title": "জিপি বান্ডেল ৩৪৯",
+    "description": "২০ জিবি + ২০০ মিনিট + ৫০০ এসএমএস",
+    "face_value": 349,
+    "price": 299,
+    "validity": "৩০ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_b9952a393af56a9ffd5f",
+    "operator": "gp",
+    "category": "social",
+    "title": "জিপি সোশ্যাল ৪৯",
+    "description": "ফেসবুক + মেসেঞ্জার",
+    "face_value": 49,
+    "price": 42,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_9fc2c049be506a9ffd5f",
+    "operator": "gp",
+    "category": "night",
+    "title": "জিপি নাইট ১০ জিবি",
+    "description": "১২টা-৬টা",
+    "face_value": 48,
+    "price": 42,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_146160dc283c6a9ffd5f",
     "operator": "robi",
     "category": "regular",
     "title": "রবি ৮ জিবি",
@@ -72,10 +147,10 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_45c0486824d66a9feb1f",
+    "id": "of_b91d833f20c26a9ffd5f",
     "operator": "robi",
     "category": "drive",
     "title": "রবি ড্রাইভ ২৫ জিবি",
@@ -87,10 +162,40 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_d5c08c835e3c6a9feb1f",
+    "id": "of_bb648260a60f6a9ffd5f",
+    "operator": "robi",
+    "category": "combo",
+    "title": "রবি কম্বো ১৪৯",
+    "description": "৫ জিবি + ৫০ মিনিট + ২০০ এসএমএস",
+    "face_value": 149,
+    "price": 129,
+    "validity": "৩০ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_cf4263e94fbb6a9ffd5f",
+    "operator": "robi",
+    "category": "social",
+    "title": "রবি সোশ্যাল ৩৯",
+    "description": "ফেসবুক + ইনস্টা + টিকটক",
+    "face_value": 39,
+    "price": 33,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_d7c0d5cc254c6a9ffd5f",
     "operator": "airtel",
     "category": "internet",
     "title": "এয়ারটেল ১০ জিবি",
@@ -102,10 +207,40 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_972371813dfe6a9feb1f",
+    "id": "of_1f424d04fc586a9ffd5f",
+    "operator": "airtel",
+    "category": "minutes",
+    "title": "এয়ারটেল ২০০ মিনিট",
+    "description": "যেকোনো অপারেটরে",
+    "face_value": 89,
+    "price": 78,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_909035b154456a9ffd5f",
+    "operator": "airtel",
+    "category": "sms",
+    "title": "এয়ারটেল ১০০০ এসএমএস",
+    "description": "অল নেটওয়ার্ক",
+    "face_value": 49,
+    "price": 42,
+    "validity": "৩০ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_4095238f2e926a9ffd5f",
     "operator": "bl",
     "category": "regular",
     "title": "বিএল ৬ জিবি",
@@ -117,10 +252,10 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_e971b3eeb18d6a9feb1f",
+    "id": "of_0b42ef7fa3e16a9ffd5f",
     "operator": "bl",
     "category": "drive",
     "title": "বিএল ড্রাইভ ৪০ জিবি",
@@ -132,10 +267,40 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_962a0f09b5a06a9feb1f",
+    "id": "of_c3e6f94ff6946a9ffd5f",
+    "operator": "bl",
+    "category": "voice",
+    "title": "বিএল ভয়েস ৫০০ মিনিট",
+    "description": "বিএল-টু-বিএল",
+    "face_value": 99,
+    "price": 85,
+    "validity": "৭ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_328c2f13f1466a9ffd5f",
+    "operator": "bl",
+    "category": "bundle",
+    "title": "বিএল বান্ডেল ১৯৯",
+    "description": "১০ জিবি + ১০০ মিনিট + ৩০০ এসএমএস",
+    "face_value": 199,
+    "price": 169,
+    "validity": "৩০ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_b38fb6ff7c906a9ffd5f",
     "operator": "tt",
     "category": "internet",
     "title": "টেলিটক ৫ জিবি",
@@ -147,21 +312,36 @@
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   },
   {
-    "id": "of_82fff2f5ad326a9feb1f",
-    "operator": "gp",
-    "category": "internet",
-    "title": "জিপি নাইট ১০ জিবি",
-    "description": "১২টা-৬টা",
-    "face_value": 48,
-    "price": 42,
+    "id": "of_2e25d6264f896a9ffd5f",
+    "operator": "tt",
+    "category": "combo",
+    "title": "টেলিটক কম্বো ৯৯",
+    "description": "৩ জিবি + ৩০ মিনিট + ১০০ এসএমএস",
+    "face_value": 99,
+    "price": 88,
+    "validity": "৩০ দিন",
+    "stock": 99,
+    "sold": 0,
+    "featured": true,
+    "active": true,
+    "created_at": "2026-09-08 12:19:43"
+  },
+  {
+    "id": "of_bfa81292b4a96a9ffd5f",
+    "operator": "tt",
+    "category": "night",
+    "title": "টেলিটক নাইট ২০ জিবি",
+    "description": "১২টা-৭টা",
+    "face_value": 79,
+    "price": 69,
     "validity": "৭ দিন",
     "stock": 99,
     "sold": 0,
     "featured": true,
     "active": true,
-    "created_at": "2026-09-08 11:01:51"
+    "created_at": "2026-09-08 12:19:43"
   }
 ]

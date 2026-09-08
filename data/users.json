@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "id": "u_23acdd80f2366a9ffcb0",
+    "name": "Test User",
+    "phone": "01712345678",
+    "password": "7401a8de7f9e7363d8dfa615624f84f0d991e5ecdacd5b81503fd93dd3951b0d",
+    "wallet": 0,
+    "role": "user",
+    "status": "active",
+    "created_at": "2026-09-08 12:16:48"
+  },
+  {
+    "id": "u_908c20e7dc836a9ffcc9",
+    "name": "Tester",
+    "phone": "01812345678",
+    "password": "65002b97a8f2e28d7510b8ca18d1d4575ce2d8a12eb60208a61b45cd9a5eb6b8",
+    "wallet": 0,
+    "role": "user",
+    "status": "active",
+    "created_at": "2026-09-08 12:17:13"
+  },
+  {
+    "id": "u_1cc0f3959ffb6a9ffd65",
+    "name": "Ashiq",
+    "phone": "01711111222",
+    "password": "65002b97a8f2e28d7510b8ca18d1d4575ce2d8a12eb60208a61b45cd9a5eb6b8",
+    "wallet": 0,
+    "role": "user",
+    "status": "active",
+    "created_at": "2026-09-08 12:19:49"
+  },
+  {
+    "id": "u_eb899d721f446a9ffd8d",
+    "name": "Browser User",
+    "phone": "01512345678",
+    "password": "65002b97a8f2e28d7510b8ca18d1d4575ce2d8a12eb60208a61b45cd9a5eb6b8",
+    "wallet": 0,
+    "role": "user",
+    "status": "active",
+    "created_at": "2026-09-08 12:20:29"
+  }
+]
