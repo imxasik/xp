@@ -9,7 +9,7 @@ function xp_seed_if_empty(): void
     if (!is_dir(XP_DATA)) {
         mkdir(XP_DATA, 0777, true);
     }
-    $files = ['users','admins','offers','operators','orders','invoices','wallet','gateways','settings','pages','banners','categories'];
+    $files = ['users','admins','offers','operators','orders','invoices','wallet','gateways','settings','pages','banners','categories','notifications'];
     foreach ($files as $f) {
         $p = xp_json_path($f);
         if (!is_file($p)) {
@@ -39,6 +39,19 @@ function xp_seed_if_empty(): void
             'gateway_secret' => 'xp-secret-change-me',
             'min_topup' => 20,
             'theme' => 'ocean',
+            'service_hours' => [
+                'enabled' => true,
+                'start' => '08:00',
+                'end' => '22:00',
+                'scope' => 'drive',
+                'avg_minutes' => '৫–১৫',
+                'prayer_breaks' => [
+                    ['name' => 'যোহর', 'start' => '12:15', 'end' => '12:50'],
+                    ['name' => 'আসর', 'start' => '16:15', 'end' => '16:45'],
+                    ['name' => 'মাগরিব', 'start' => '18:05', 'end' => '18:35'],
+                    ['name' => 'এশা', 'start' => '19:30', 'end' => '20:00'],
+                ],
+            ],
         ]);
     }
 

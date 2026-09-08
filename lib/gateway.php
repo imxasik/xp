@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/notify.php';
 
 /**
  * Custom XPPay gateway — no third party.
@@ -91,6 +92,9 @@ function gw_submit_trx(string $invoiceId, string $trx, string $sender, array $us
     });
     if ($status === 'paid') {
         gw_fulfill($updated);
+    } else {
+        notify_admin('payment', 'পেমেন্ট রিভিউ দরকার', strtoupper($inv['method']) . ' ৳' . $inv['amount'] . ' · TrxID ' . $trx . ' · পে-কোড ' . $inv['paycode'], ['invoice_id' => $invoiceId]);
+        notify_user($user['id'], 'payment', 'TrxID জমা হয়েছে', 'আমরা যাচাই করে দ্রুত কনফার্ম করব। ধৈর্য ধরার জন্য ধন্যবাদ।', ['invoice_id' => $invoiceId]);
     }
     return ['ok' => true, 'invoice' => $updated];
 }
@@ -109,6 +113,8 @@ function gw_admin_confirm(string $invoiceId, bool $approve, string $note = ''): 
     });
     if ($approve) {
         gw_fulfill($updated);
+    } else {
+        notify_user($inv['user_id'], 'payment', 'পেমেন্ট রিজেক্ট ❌', strtoupper($inv['method']) . ' ৳' . $inv['amount'] . ($note ? ' · কারণ: ' . $note : '') . ' — সঠিক TrxID দিয়ে আবার চেষ্টা করুন বা সাপোর্টে যোগাযোগ করুন।', ['invoice_id' => $invoiceId]);
     }
     return ['ok' => true, 'invoice' => $updated];
 }
@@ -117,6 +123,8 @@ function gw_fulfill(array $inv): void
 {
     if (($inv['purpose'] ?? '') === 'wallet_topup') {
         wallet_credit($inv['user_id'], (float)$inv['amount'], 'ওয়ালেট রিচার্জ', $inv['id']);
+        notify_user($inv['user_id'], 'wallet', 'ওয়ালেটে ৳' . $inv['amount'] . ' যোগ হয়েছে ✅', 'টপআপ কনফার্মড · ' . strtoupper($inv['method']), ['invoice_id' => $inv['id']]);
+        notify_admin('wallet', 'টপআপ কনফার্মড ৳' . $inv['amount'], strtoupper($inv['method']) . ' · ' . ($inv['trx_id'] ?: '-'), ['invoice_id' => $inv['id']]);
         return;
     }
     if (($inv['purpose'] ?? '') === 'order' && !empty($inv['meta']['order_id'])) {
