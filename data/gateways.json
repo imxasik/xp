@@ -1,0 +1,58 @@
+[
+  {
+    "code": "wallet",
+    "name": "এক্সপি ওয়ালেট",
+    "merchant": "",
+    "enabled": true,
+    "auto": true,
+    "instructions": "ইনস্ট্যান্ট কাটা হবে আপনার ওয়ালেট থেকে।"
+  },
+  {
+    "code": "bkash",
+    "name": "বিকাশ",
+    "merchant": "01711111111",
+    "enabled": true,
+    "auto": true,
+    "instructions": "Send Money করুন। রেফারেন্সে পে-কোড দিন। তারপর TrxID জমা দিন।"
+  },
+  {
+    "code": "nagad",
+    "name": "নগদ",
+    "merchant": "01712222222",
+    "enabled": true,
+    "auto": true,
+    "instructions": "Send Money করুন। রেফারেন্সে পে-কোড দিন।"
+  },
+  {
+    "code": "rocket",
+    "name": "রকেট",
+    "merchant": "01713333333",
+    "enabled": true,
+    "auto": true,
+    "instructions": "Send Money করুন। রেফারেন্সে পে-কোড দিন।"
+  },
+  {
+    "code": "upay",
+    "name": "উপায়",
+    "merchant": "01714444444",
+    "enabled": true,
+    "auto": true,
+    "instructions": "Send Money করে TrxID দিন।"
+  },
+  {
+    "code": "ucash",
+    "name": "ইউক্যাশ",
+    "merchant": "01715555555",
+    "enabled": true,
+    "auto": true,
+    "instructions": "Send Money করে TrxID দিন।"
+  },
+  {
+    "code": "bank",
+    "name": "ব্যাংক",
+    "merchant": "XP Telecom Ltd — 1234567890 — City Bank",
+    "enabled": true,
+    "auto": false,
+    "instructions": "ব্যাংক ট্রান্সফার করে রেফারেন্স নম্বর দিন।"
+  }
+]

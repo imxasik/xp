@@ -1,0 +1,12 @@
+{
+  "site_name": "XP Telecom",
+  "tagline": "বাংলাদেশের সকল অপারেটর অফার ও রিচার্জ",
+  "phone": "01700000000",
+  "whatsapp": "01700000000",
+  "notice": "স্বাগতম! অফার কেনার আগে নম্বরটি ভালো করে চেক করুন।",
+  "auto_approve_payments": true,
+  "auto_process_orders": true,
+  "gateway_secret": "xp-secret-change-me",
+  "min_topup": 20,
+  "theme": "ocean"
+}
