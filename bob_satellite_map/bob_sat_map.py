@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =====================================================================================
- BoB-SatMap v1.0  --  Bay of Bengal professional weather-satellite map
+ BoB-SatMap v1.1  --  Bay of Bengal professional weather-satellite map
 =====================================================================================
 Made for  Pydroid3 on Android  (also runs on any desktop Python 3.8+).
 
@@ -50,10 +50,14 @@ DRAW_MSLP        = False    # mean-sea-level-pressure contours (Open-Meteo)
 DRAW_STATES      = False    # GADM state borders (bigger first-time download)
 
 # --- Output -----------------------------------------------------------------
-DPI            = 170
+MAP_W          = 1500           # map width in PIXELS (layout is pixel-perfect)
+DPI            = 150
 OUT_DIR_NAME   = "BoB_Maps"     # created next to this script
-FRAMES         = 1              # >1 makes an animated GIF (IR frames)
-FRAME_STEP_MIN = 30             # minutes between GIF frames
+FRAMES         = 8              # 1 = single map | >1 = animated GIF loop
+FRAME_STEP_MIN = 15             # minutes between loop frames (JMA: 10-min grid)
+FRAME_MS       = 550            # GIF frame duration (milliseconds)
+WIND_STEP      = 3.0            # degrees between wind barbs
+SHOW_INSET_TIME = True          # extra "VALID time" box inside the map
 DATA_DIR_NAME  = "geo_cache"    # downloaded boundaries are cached here
 
 # --- Advanced (normally no need to touch) -----------------------------------
@@ -149,10 +153,17 @@ COUNTRY_LABELS = [
     ("BHUTAN",      90.4, 27.5),
 ]
 WATER_LABELS = [
-    ("B A Y   O F   B E N G A L", 88.3, 11.9, -32, 14),
-    ("A N D A M A N   S E A",     95.6,  9.6, -18, 11),
-    ("I N D I A N   O C E A N",   83.5,  3.1,  -4, 11),
+    ("B A Y   O F   B E N G A L", 88.4, 12.4, -30, 14),
+    ("A N D A M A N   S E A",     96.9,  8.0, -14, 10),
+    ("I N D I A N   O C E A N",   83.5,  3.4,  -4, 11),
 ]
+
+SAT_PRETTY = {"HIMAWARI": "HIMAWARI-9", "METEOSAT": "METEOSAT IODC"}
+PROD_PRETTY = {"IR_COLOR": "ENHANCED INFRA-RED (10.4 µm)",
+               "IR_GRAY": "INFRA-RED GREYSCALE",
+               "VIS": "VISIBLE DAYLIGHT", "TRUECOLOR": "TRUE COLOUR",
+               "WV": "WATER VAPOUR (6.2 µm)", "DUST": "DUST RGB",
+               "SANDWICH": "VIS+IR SANDWICH", "CONVECTION": "CONVECTION RGB"}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(SCRIPT_DIR, OUT_DIR_NAME)
@@ -631,7 +642,7 @@ def apply_style(gray01, product):
 # ==========================================================================
 #  6) Open-Meteo weather grid (no API key)
 # ==========================================================================
-def fetch_weather_grid(step=2.5):
+def fetch_weather_grid(step=WIND_STEP):
     lats = np.arange(LAT_MIN + 1.0, LAT_MAX, step)
     lons = np.arange(LON_MIN + 1.0, LON_MAX, step)
     pts = [(round(float(la), 2), round(float(lo), 2)) for la in lats for lo in lons]
@@ -672,79 +683,95 @@ def fetch_weather_grid(step=2.5):
     return out, sorted(set(p[0] for p in pts)), sorted(set(p[1] for p in pts))
 
 # ==========================================================================
-#  7) the map itself
+#  7) professional deterministic-layout map renderer (pixel-perfect)
 # ==========================================================================
+def _layout(product):
+    """Canvas sections (top->bottom): title | map | [IR colourbar] | footer."""
+    cos0 = math.cos(math.radians(0.5 * (LAT_MIN + LAT_MAX)))
+    map_h = max(200, int(round(MAP_W * (LAT_MAX - LAT_MIN)
+                            / ((LON_MAX - LON_MIN) * cos0))))
+    title_h, foot_h = 128, 70
+    cbar_h = 92 if product == "IR_COLOR" else 0
+    total_h = title_h + map_h + cbar_h + foot_h
+    fr = lambda px: px / float(total_h)
+    rects = {"title": [0.0, 1.0 - fr(title_h), 1.0, fr(title_h)],
+             "map":   [0.0, fr(cbar_h + foot_h), 1.0, fr(map_h)],
+             "cbar":  [0.05, fr(foot_h + 36), 0.90, fr(20)],
+             "foot":  [0.0, 0.0, 1.0, fr(foot_h)]}
+    return MAP_W / float(DPI), total_h / float(DPI), rects
+
+
 def draw_map(fig_rgb, fig_alpha, stamp, product, satellite_name, provider,
              is_native_color, out_path, wind_grid=None):
-    H, W = fig_rgb.shape[:2]
-    lat_mid = 0.5 * (LAT_MIN + LAT_MAX)
+    f_w, f_h, rects = _layout(product)
+    fig = plt.figure(figsize=(f_w, f_h), dpi=DPI, facecolor="#0d1b2a")
 
-    fw = W / DPI + 0.25
-    fh = H / DPI + 1.0
-    fig = plt.figure(figsize=(fw, fh), dpi=DPI, facecolor="#0d1b2a")
-    ax = fig.add_axes([0.03, 0.075, 0.94, 0.83])
-    ax.set_facecolor("#102a43")
+    # ------------------------------------------------------------- map ----
+    ax = fig.add_axes(rects["map"])
+    ax.set_facecolor("#0f2740")
     ax.set_xlim(LON_MIN, LON_MAX)
     ax.set_ylim(LAT_MIN, LAT_MAX)
-    # Plate Carree: 1 deg lon == 1 deg lat (imshow default aspect "equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.tick_params(length=0)
     for side in ("top", "right", "bottom", "left"):
         sp = ax.spines[side]
         sp.set_visible(True)
         sp.set_color("#020617")
-        sp.set_linewidth(2.6)
+        sp.set_linewidth(3.0)
+    halo = [pe.withStroke(linewidth=1.9, foreground="#0f172a")]
 
-    # ---- base ---------------------------------------------------------------
+    # base land fill, then satellite image on top
     countries = load_geojson("ne_50m_admin_0_countries.geojson")
     for poly in layer_polygons(countries):
-        ax.add_patch(MplPolygon(poly, closed=True, facecolor="#33332a",
+        ax.add_patch(MplPolygon(poly, closed=True, facecolor="#332f28",
                                 edgecolor="none", zorder=1))
-
-    # ---- satellite image ------------------------------------------------------
     ax.imshow(np.clip(fig_rgb, 0, 1),
               extent=[LON_MIN, LON_MAX, LAT_MIN, LAT_MAX],
               origin="upper", interpolation="bilinear",
-              alpha=fig_alpha, zorder=3)
+              alpha=fig_alpha, zorder=3, aspect="auto")
 
-    # ---- vector overlays ------------------------------------------------------
+    # boundaries
     coast = layer_segments(load_geojson("ne_10m_coastline.geojson"))
     bounds = layer_segments(load_geojson("ne_10m_admin_0_boundary_lines_land.geojson"))
     if coast:
-        ax.add_collection(LineCollection(coast, colors="#f8fafc", linewidths=1.1,
-                                         zorder=5, alpha=0.95))
+        ax.add_collection(LineCollection(coast, colors="#f8fafc",
+                                         linewidths=1.1, zorder=5, alpha=0.95))
     if bounds:
-        ax.add_collection(LineCollection(bounds, colors="#e2b13c", linewidths=0.7,
-                                         zorder=5, alpha=0.9, linestyles="dashed"))
+        ax.add_collection(LineCollection(bounds, colors="#e2b13c",
+                                         linewidths=0.7, zorder=5, alpha=0.9,
+                                         linestyles="dashed"))
     if DRAW_STATES:
         st = load_gadm_states()
         if st:
-            ax.add_collection(LineCollection(st, colors="#9aa5b1", linewidths=0.45,
-                                             zorder=4, alpha=0.75, linestyles="dotted"))
+            ax.add_collection(LineCollection(st, colors="#9aa5b1",
+                                             linewidths=0.45, zorder=4,
+                                             alpha=0.75, linestyles="dotted"))
     if DRAW_RIVERS:
         riv = layer_segments(load_geojson("ne_50m_rivers_lake_centerlines.geojson"))
         if riv:
-            ax.add_collection(LineCollection(riv, colors="#7dd3fc", linewidths=0.5,
-                                             zorder=4, alpha=0.8))
+            ax.add_collection(LineCollection(riv, colors="#7dd3fc",
+                                             linewidths=0.5, zorder=4,
+                                             alpha=0.8))
 
-    # ---- graticule -------------------------------------------------------------
+    # graticule: lines every 2 deg, labels INSIDE the frame (never clipped)
     if DRAW_GRATICULE:
         for glon in np.arange(math.ceil(LON_MIN), LON_MAX, 2):
-            ax.axvline(glon, color="#94a3b8", lw=0.3, alpha=0.45, zorder=2)
+            ax.axvline(glon, color="#94a3b8", lw=0.35, alpha=0.40, zorder=2)
         for glat in np.arange(math.ceil(LAT_MIN), LAT_MAX, 2):
-            ax.axhline(glat, color="#94a3b8", lw=0.3, alpha=0.45, zorder=2)
-        halo = [pe.withStroke(linewidth=1.8, foreground="#0f172a")]
-        xt = list(range(int(math.ceil(LON_MIN / 2.0) * 2), int(LON_MAX) + 1, 2))
-        yt = list(range(int(math.ceil(LAT_MIN / 2.0) * 2), int(LAT_MAX) + 1, 2))
-        ax.set_xticks(xt)
-        ax.set_yticks(yt)
-        ax.set_xticklabels(["%d°E" % v for v in xt], fontsize=7.5,
-                           color="#f1f5f9", fontweight="bold")
-        ax.set_yticklabels(["%d°N" % v for v in yt], fontsize=7.5,
-                           color="#f1f5f9", fontweight="bold")
-        ax.tick_params(colors="#f1f5f9", length=4, width=0.9)
-        for lab in ax.get_xticklabels() + ax.get_yticklabels():
-            lab.set_path_effects(halo)
+            ax.axhline(glat, color="#94a3b8", lw=0.35, alpha=0.40, zorder=2)
+        for tg in range(int(math.ceil(LON_MIN / 4.0) * 4), int(LON_MAX), 4):
+            t = ax.text(tg, LAT_MIN + 0.30, "%d°E" % tg, ha="center",
+                        va="bottom", fontsize=8.0, color="#f8fafc",
+                        fontweight="bold", zorder=9)
+            t.set_path_effects(halo)
+        for tg in range(int(math.ceil(LAT_MIN / 4.0) * 4), int(LAT_MAX), 4):
+            t = ax.text(LON_MIN + 0.25, tg, "%d°N" % tg, ha="left",
+                        va="center", rotation=90, fontsize=8.0,
+                        color="#f8fafc", fontweight="bold", zorder=9)
+            t.set_path_effects(halo)
 
-    # ---- cities -----------------------------------------------------------------
+    # cities
     if DRAW_CITIES:
         style = {"C": (7.0, "*", 8.5), "B": (5.0, "o", 8.0),
                  "M": (4.0, "o", 7.0), "S": (3.0, "o", 6.0)}
@@ -755,130 +782,158 @@ def draw_map(fig_rgb, fig_alpha, stamp, product, satellite_name, provider,
             ax.plot(c_lon, c_lat, marker=mk, ms=ms, mfc="#f8fafc",
                     mec="#0f172a", mew=0.9, zorder=8)
             dx = {"C": 0.22, "B": 0.20, "M": 0.18, "S": 0.16}[kind]
-            t = ax.text(c_lon + dx, c_lat + 0.10, name, fontsize=fs, zorder=9,
-                        color="#f8fafc", fontweight="bold")
+            t = ax.text(c_lon + dx, c_lat + 0.10, name, fontsize=fs,
+                        zorder=9, color="#f8fafc", fontweight="bold")
             t.set_path_effects([pe.withStroke(linewidth=1.6,
                                               foreground="#0f172a")])
 
-    # ---- country / water labels ---------------------------------------------------
-    for name, x, y in COUNTRY_LABELS:
-        t = ax.text(x, y, name, fontsize=8.5, color="#e2c97f", alpha=0.95,
+    # country / water labels
+    for name, xc, yc in COUNTRY_LABELS:
+        t = ax.text(xc, yc, name, fontsize=8.5, color="#e2c97f", alpha=0.95,
                     ha="center", fontweight="bold", zorder=6, style="italic")
-        t.set_path_effects([pe.withStroke(linewidth=1.4, foreground="#0f172a")])
-    for name, x, y, rot, fs in WATER_LABELS:
-        t = ax.text(x, y, name, fontsize=fs, color="#9ed0f0", alpha=0.85,
+        t.set_path_effects([pe.withStroke(linewidth=1.4,
+                                          foreground="#0f172a")])
+    for name, xc, yc, rot, fs in WATER_LABELS:
+        t = ax.text(xc, yc, name, fontsize=fs, color="#9ed0f0", alpha=0.85,
                     ha="center", rotation=rot, zorder=6, style="italic")
         t.set_path_effects([pe.withStroke(linewidth=1.5,
                                           foreground="#0f172a")])
 
-    # ---- weather overlays -----------------------------------------------------------
+    # weather model overlays (wind barbs / isobars)
     if wind_grid:
         out, lats_g, lons_g = wind_grid
         if out:
             P = np.full((len(lats_g), len(lons_g)), np.nan)
             U = np.zeros_like(P)
             V = np.zeros_like(P)
-            for i, la in enumerate(lats_g):
-                for j, lo in enumerate(lons_g):
+            for ig, la in enumerate(lats_g):
+                for jg, lo in enumerate(lons_g):
                     rec = out.get((la, lo))
                     if not rec:
                         continue
-                    P[i, j] = rec["mslp"]
+                    P[ig, jg] = rec["mslp"]
                     spd_kn = rec["ws"] * 0.539957 if not math.isnan(rec["ws"]) else 0.0
                     dd = math.radians(rec["wd"]) if not math.isnan(rec["wd"]) else 0.0
-                    U[i, j] = -spd_kn * math.sin(dd)
-                    V[i, j] = -spd_kn * math.cos(dd)
+                    U[ig, jg] = -spd_kn * math.sin(dd)
+                    V[ig, jg] = -spd_kn * math.cos(dd)
             if DRAW_MSLP and not np.all(np.isnan(P)):
                 lv = np.arange(940, 1045, 2)
                 ax.contour(lons_g, lats_g, P, levels=lv, colors="#0f172a",
-                           linewidths=1.5, alpha=0.55, zorder=7)
-                cs = ax.contour(lons_g, lats_g, P, levels=lv, colors="#ffd60a",
-                                linewidths=0.7, zorder=7)
-                ax.clabel(cs, inline=True, fontsize=6.2, fmt="%.0f",
+                           linewidths=1.6, alpha=0.55, zorder=7)
+                cs = ax.contour(lons_g, lats_g, P, levels=lv,
+                                colors="#ffd60a", linewidths=0.8, zorder=7)
+                ax.clabel(cs, inline=True, fontsize=6.6, fmt="%.0f",
                           colors="#ffd60a")
             if DRAW_WIND:
                 bx, by = np.meshgrid(lons_g, lats_g)
                 bc = "#0f172a" if is_native_color else "#f8fafc"
-                ax.barbs(bx, by, U, V, length=4.6, linewidth=0.55, color=bc,
-                         alpha=0.92, zorder=8,
-                         barb_increments=dict(half=2.5, full=5, flag=25))
+                ax.barbs(bx, by, U, V, length=7.2, linewidth=0.8,
+                         color=bc, alpha=0.95, zorder=8,
+                         barb_increments=dict(half=5, full=10, flag=50))
 
-    # ---- north arrow + scale bar ------------------------------------------------------
-    ax.text(LON_MAX - 1.1, LAT_MAX - 1.15, "N", fontsize=13, color="#f8fafc",
+    # north arrow
+    ax.text(LON_MAX - 1.1, LAT_MAX - 1.25, "N", fontsize=14, color="#f8fafc",
             fontweight="bold", ha="center", zorder=9)
-    ax.annotate("", xy=(LON_MAX - 1.1, LAT_MAX - 0.62),
-                xytext=(LON_MAX - 1.1, LAT_MAX - 1.12),
-                arrowprops=dict(arrowstyle="-|>", color="#f8fafc", lw=1.4),
+    ax.annotate("", xy=(LON_MAX - 1.1, LAT_MAX - 0.70),
+                xytext=(LON_MAX - 1.1, LAT_MAX - 1.20),
+                arrowprops=dict(arrowstyle="-|>", color="#f8fafc", lw=1.5),
                 zorder=9)
+
+    # scale bar (3 x 100 km at 10N)
     lat_sb = LAT_MIN + 0.9
     km_deg = 111.32 * math.cos(math.radians(10.0))
     seg = 100.0 / km_deg
     x_sb = LON_MIN + 0.9
     for k in range(3):
         ax.add_patch(MplRectangle((x_sb + k * seg, lat_sb), seg, 0.22,
-                                  facecolor=("#f8fafc" if k % 2 == 0 else "#0f172a"),
+                                  facecolor=("#f8fafc" if k % 2 == 0
+                                             else "#0f172a"),
                                   edgecolor="#0f172a", lw=0.8, zorder=9))
     for k in range(4):
-        t = ax.text(x_sb + k * seg, lat_sb - 0.34, str(k * 100), fontsize=6.5,
-                    color="#f8fafc", ha="center", zorder=9, fontweight="bold")
-        t.set_path_effects([pe.withStroke(linewidth=1.4, foreground="#0f172a")])
+        t = ax.text(x_sb + k * seg, lat_sb - 0.34, str(k * 100),
+                    fontsize=6.5, color="#f8fafc", ha="center", zorder=9,
+                    fontweight="bold")
+        t.set_path_effects([pe.withStroke(linewidth=1.4,
+                                          foreground="#0f172a")])
     ax.text(x_sb + 3 * seg + 0.25, lat_sb + 0.02, "km", fontsize=6.5,
             color="#f8fafc", zorder=9, fontweight="bold")
 
-    # ---- title band ----------------------------------------------------------------------
-    band = fig.add_axes([0.0, 0.915, 1.0, 0.085])
+    # in-map VALID box (satellite time always visible)
+    if SHOW_INSET_TIME and isinstance(stamp, datetime):
+        bx, by, bw, bh = LON_MIN + 0.45, LAT_MAX - 2.30, 4.5, 1.95
+        ax.add_patch(MplRectangle((bx, by), bw, bh, facecolor="#0d1b2a",
+                                  edgecolor="#4cc9f0", lw=1.4, alpha=0.90,
+                                  zorder=10))
+        ax.text(bx + bw / 2, by + bh - 0.52, "IMAGE VALID", ha="center",
+                fontsize=6.8, color="#4cc9f0", fontweight="bold", zorder=11)
+        ax.text(bx + bw / 2, by + 0.80, stamp.strftime("%H:%M UTC"),
+                ha="center", fontsize=12.5, color="#ffffff",
+                fontweight="bold", zorder=11)
+        ax.text(bx + bw / 2, by + 0.26,
+                stamp.strftime("%d %b %Y").upper(), ha="center",
+                fontsize=7.2, color="#cbd5e1", zorder=11)
+
+    # ---------------------------------------------------------- title ----
+    band = fig.add_axes(rects["title"])
     band.axis("off")
     band.set_facecolor("#0d1b2a")
-    band.plot([0, 1], [0.04, 0.04], color="#4cc9f0", lw=1.6,
-              transform=band.transAxes, clip_on=False)
-    band.text(0.022, 0.68, "SATELLITE WEATHER WATCH", fontsize=15.5,
+    band.add_patch(MplRectangle((0.0, 0.0), 1.0, 0.05,
+                                transform=band.transAxes,
+                                facecolor="#4cc9f0", edgecolor="none"))
+    band.text(0.028, 0.76, "SATELLITE WEATHER WATCH", fontsize=20,
               color="#ffffff", fontweight="bold", va="center")
-    band.text(0.022, 0.26, AREA_TITLE, fontsize=10.5, color="#4cc9f0",
+    band.text(0.028, 0.30, AREA_TITLE, fontsize=11, color="#4cc9f0",
               va="center", fontweight="bold")
-    valid = stamp.strftime("%d %b %Y  %H:%M UTC") if isinstance(stamp, datetime) \
-        else str(stamp)
-    band.text(0.978, 0.68, "%s  •  %s" % (satellite_name, product.replace("_", " ")),
-              fontsize=10.5, color="#ffd60a", fontweight="bold", va="center",
-              ha="right")
-    band.text(0.978, 0.26, "image nominal time: %s" % valid, fontsize=9,
-              color="#cbd5e1", va="center", ha="right")
+    sat_txt = SAT_PRETTY.get(satellite_name, satellite_name)
+    prod_txt = PROD_PRETTY.get(product, product.replace("_", " "))
+    band.text(0.972, 0.80, sat_txt, fontsize=13.5, color="#ffd60a",
+              fontweight="bold", va="center", ha="right")
+    band.text(0.972, 0.55, prod_txt, fontsize=9.5, color="#e2e8f0",
+              va="center", ha="right")
+    if isinstance(stamp, datetime):
+        band.text(0.972, 0.24, "valid  %s  •  %s"
+                  % (stamp.strftime("%H:%M UTC"),
+                     stamp.strftime("%d %b %Y").upper()),
+                  fontsize=9.5, color="#ffffff", va="center", ha="right",
+                  fontweight="bold")
 
-    # ---- footer ----------------------------------------------------------------------------
-    foot = fig.add_axes([0.0, 0.0, 1.0, 0.055])
+    # ---------------------------------------------------------- footer ----
+    foot = fig.add_axes(rects["foot"])
     foot.axis("off")
     foot.set_facecolor("#0d1b2a")
-    foot.plot([0, 1], [1.0, 1.0], color="#4cc9f0", lw=1.2,
-              transform=foot.transAxes, clip_on=False)
-    src = {"HIMAWARI": "JMA Himawari-8/9 + NICT true-colour tiles (Japan)",
-           "METEOSAT": "EUMETSAT Meteosat IODC (EUMETView static images)"
+    foot.add_patch(MplRectangle((0.0, 0.94), 1.0, 0.06,
+                                transform=foot.transAxes,
+                                facecolor="#4cc9f0", edgecolor="none"))
+    src = {"HIMAWARI": "Imagery: JMA Himawari-8/9 + NICT tiles  •  updated every 10 min",
+           "METEOSAT": "Imagery: EUMETSAT Meteosat IODC (EUMETView)  •  updated every 15 min"
            }.get(satellite_name, satellite_name)
-    foot.text(0.022, 0.66, "Data: %s" % src, fontsize=7.6, color="#94a3b8",
-              va="center")
-    foot.text(0.022, 0.26, "Boundaries: Natural Earth • Weather model: Open-Meteo • "
-                           "projection: Plate Carrée (from geostationary)",
-              fontsize=7.0, color="#5b6b80", va="center")
-    foot.text(0.978, 0.66, "BoB-SatMap v1.0 • rendered %s UTC"
+    foot.text(0.028, 0.66, src, fontsize=8.2, color="#94a3b8", va="center")
+    foot.text(0.028, 0.26, "Boundaries: Natural Earth  •  Wind: Open-Meteo "
+                           "(10 m, knots)  •  personal / educational use",
+              fontsize=7.4, color="#5b6b80", va="center")
+    foot.text(0.972, 0.66, "BoB-SatMap v1.1", fontsize=9.5, color="#4cc9f0",
+              fontweight="bold", va="center", ha="right")
+    foot.text(0.972, 0.26, "rendered %s UTC"
               % datetime.now(timezone.utc).strftime("%d %b %Y %H:%M"),
-              fontsize=7.4, color="#94a3b8", va="center", ha="right")
-    foot.text(0.978, 0.26, "for personal / educational use",
-              fontsize=6.8, color="#5b6b80", va="center", ha="right")
+              fontsize=7.6, color="#94a3b8", va="center", ha="right")
 
-    # ---- IR colour bar (drawn inside the map, bottom-centre) ---------------------------
+    # ------------------------------------------------- IR colour strip ----
     if product == "IR_COLOR":
-        cax = fig.add_axes([0.235, 0.088, 0.53, 0.016], zorder=30)
+        cax = fig.add_axes(rects["cbar"])
         cax.imshow(funktop_lut()[None, :, :], aspect="auto",
                    extent=[BT_TOP, BT_BOT, 0, 1])
+        cax.set_title("IR ENHANCEMENT °C:  cloud-top brightness temperature "
+                      "(colder tops -> right)", fontsize=7.6,
+                      color="#cbd5e1", pad=4.0, loc="left")
         tick_bts = list(range(30, -80, -10))
         cax.set_xticks(tick_bts)
-        cax.set_xticklabels([str(t) for t in tick_bts], fontsize=6.4,
+        cax.set_xticklabels([str(t) for t in tick_bts], fontsize=7.2,
                             color="#e2e8f0", fontweight="bold")
         cax.set_yticks([])
-        for spine in cax.spines.values():
-            spine.set_edgecolor("#020617")
-            spine.set_linewidth(1.2)
         cax.tick_params(colors="#e2e8f0", length=3)
-        cax.set_xlabel("cloud-top brightness temperature (°C)  •  IR enhancement",
-                       fontsize=7.2, color="#f1f5f9", fontweight="bold")
+        for spine in cax.spines.values():
+            spine.set_edgecolor("#64748b")
+            spine.set_linewidth(1.0)
 
     fig.savefig(out_path, dpi=DPI, facecolor=fig.get_facecolor())
     plt.close(fig)
@@ -918,7 +973,7 @@ def build_chain(prod):
 
 def main():
     print("=" * 78)
-    print(" BoB-SatMap 1.0   -   Bay of Bengal satellite weather map")
+    print(" BoB-SatMap 1.1   -   Bay of Bengal satellite weather map")
     print(" area %.0f-%.0fE / %.0f-%.0fN   |   satellite: %s   |   product: %s"
           % (LON_MIN, LON_MAX, LAT_MIN, LAT_MAX, SATELLITE, PRODUCT))
     print("=" * 78)
@@ -939,7 +994,8 @@ def main():
 
     # ---- GIF loop mode -----------------------------------------------------
     if FRAMES > 1:
-        log("loop mode: %d IR frames, step %d min" % (FRAMES, FRAME_STEP_MIN))
+        log("loop mode: %d IR frames, step %d min (JMA 10-minute grid)"
+            % (FRAMES, FRAME_STEP_MIN))
         now = datetime.now(timezone.utc) - timedelta(minutes=JMA_DELAY_MIN)
         first = now.replace(minute=now.minute // 10 * 10, second=0,
                             microsecond=0)

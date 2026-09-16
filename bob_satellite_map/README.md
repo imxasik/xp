@@ -3,6 +3,8 @@
 Build **professional weather maps of the Bay of Bengal** from **real Meteosat
 and Himawari-8/9 satellite imagery**, right on your **Android phone** with the
 free **Pydroid3** app. No PC, no server, no API key, no account anywhere.
+Sources refresh **every 10 minutes** (JMA/NICT Himawari) and **every 15
+minutes** (EUMETSAT Meteosat-IODC), so you can build smooth loops.
 
 What the app produces (saved as a PNG on your phone):
 
@@ -74,6 +76,10 @@ Any of these ways works — pick the easiest for you:
 3. Watch the console — you'll see the app downloading boundaries (first run
    only, ~5 MB, then cached), the satellite image, drawing, and finally:
 
+> **Default v1.1:** `FRAMES = 8`, `FRAME_STEP_MIN = 15` — each run makes the
+> last ~2 hours as individual PNG frames **plus an animated GIF**
+> (`BoB_loop_....gif`). Want one still image instead? Set `FRAMES = 1`.
+
    ```
    SAVED:  .../BoB_SatMap/BoB_Maps/BoB_HIMAWARI_TRUECOLOR_20260916_0610Z.png
    OPEN ON YOUR PHONE:  Pydroid3 -> menu -> Folder -> BoB_Maps -> ...
@@ -136,21 +142,26 @@ LAT_MIN, LAT_MAX = 15.0, 24.0
 AREA_TITLE = "CYCLONE WATCH — NORTH BAY OF BENGAL"
 ```
 
-### 4.4 Animated loop
+### 4.4 Animated loop (updates every 10–15 min)
 
 ```python
-FRAMES = 8                # save BoB_loop_....gif with 8 frames
-FRAME_STEP_MIN = 30       # 30 min between frames (last ~4 hours)
+FRAMES = 8                # frames to fetch (JMA publishes every 10 minutes)
+FRAME_STEP_MIN = 15       # minutes between frames (10 = maximum smoothness)
+FRAME_MS = 550            # GIF playback speed (ms per frame)
 ```
+
+The app walks JMA's exact 10-minute image slots for you, so the loop always
+uses real 10-minute-cadence data. Set `FRAMES = 1` for a single still map.
 
 ### 4.5 Resolution / memory
 
 ```python
+MAP_W        = 1500       # map width in pixels (layout scales itself)
 HI_RES_COLOR = True       # hi-res Himawari true colour via NICT tiles
 NICT_ZOOM    = 8          # 8 -> 4400 px disk (only BoB tiles downloaded);
                           # use 16 for ultra detail (more tiles), 4 on old phones
 METEOSAT_FULLRES = False  # True = sharpest Meteosat (uses more RAM)
-DPI          = 170
+DPI          = 150
 ```
 
 ### 4.6 Add / move cities
@@ -201,6 +212,8 @@ python3 selftest_offline.py
 | `all sources failed` | Wait 5–10 min and run again (source hiccup), or switch `SATELLITE`/`PRODUCT`. Also check the phone is really online. |
 | image is black / “scene is dark” | It's night over the Bay: normal — the app auto-switches to IR. |
 | `BoB_Maps` not visible in gallery | Use Pydroid3 **Folder** menu or a file manager app; some galleries need a media rescan time. |
+| title/texts look cut off when viewing | That is your **gallery app zooming/cropping** the preview — open the PNG full-screen (pinch to fit) or in the **Files** app. The rendered PNG always contains the full title band, labels and footer. |
+| breeze looks like check-marks | v1.1 draws classic met-office barbs (short feather = 5 kn, long = 10 kn, triangle = 50 kn). | 
 | slow runs | Set `DRAW_STATES=False`, `DRAW_RIVERS=False`, `NICT_ZOOM=4`, `METEOSAT_FULLRES=False`. |
 | matplotlib warnings about fonts | Harmless. |
 | app killed by Android | Other apps eating RAM. Close apps; set `NICT_ZOOM=4`, `DPI=130`. |
@@ -220,6 +233,10 @@ python3 selftest_offline.py
 | State borders (optional) | GADM 4.1 | `geodata.ucdavis.edu/gadm/gadm4.1/json/` |
 | Wind / pressure / temperature | Open-Meteo | `api.open-meteo.com` (free non-commercial) |
 
+**Update cadence:** JMA quick-looks **10 min** (~45–80 min behind real time) ·
+NICT true-colour tiles **10 min** (~30 min behind) · EUMETSAT static images
+**15 min** · Open-Meteo model data hourly.
+
 **Attribution & use:** Imagery © JMA, NICT and EUMETSAT — free for
 personal/educational/non-commercial use with attribution. Natural Earth is
 public domain. Open-Meteo data under CC-BY 4.0. The rendered maps carry these
@@ -238,7 +255,7 @@ credits automatically in the footer.
 
 ```
 bob_satellite_map/
-├── bob_sat_map.py        ← THE APP (edit USER CONFIG at top, then ▶ Run)
+├── bob_sat_map.py        ← THE APP v1.1 (edit USER CONFIG at top, then ▶ Run)
 ├── selftest_offline.py   ← optional: verifies the geometry (pure Python)
 ├── README.md             ← this guide
 ├── BoB_Maps/             ← created on first run: your PNG maps / GIF loops
