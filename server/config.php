@@ -9,7 +9,7 @@
 return [
     // ── নিরাপত্তা ────────────────────────────────────────────────
     // লম্বা র‍্যান্ডম স্ট্রিং। তৈরি করতে: openssl rand -hex 32
-    'shared_secret'   => 'CHANGE_ME_a9f3c7d1e5b28460f1c3a7d9e2b4c6f8a1d3e5b7c9f2a4d6e8b0c2f4a6d8e0b2',
+    'shared_secret'   => '588fbecac8d3db1eb9af5f6a47901f782abf2fdcc938a9930ff44076d7f9853e',
 
     // ── সাইট ────────────────────────────────────────────────────
     'site_title'      => 'BAF Weather Mirror',
@@ -21,7 +21,7 @@ return [
     // এটি চালু করলে Termux/ফোনের দরকার নেই — cron নিজেই fetch.php ডাকবে।
     // শর্ত: একটি কার্যকর বাংলাদেশি HTTP/SOCKS5 প্রক্সি লাগবে।
     'pull' => [
-        'enabled'    => false,
+        'enabled'    => true,
 
         // প্রক্সি। চারটি সম্ভাবনা:
         //   'auto'  → ⭐ ফ্রি বাংলাদেশি প্রক্সি পুল। নিজে থেকে তালিকা আনে, যাচাই করে,
@@ -46,7 +46,7 @@ return [
         'pool_test_timeout'   => 12,  // প্রতিটির জন্য সেকেন্ড
 
         // fetch.php চালানোর গোপন কী। cron URL-এ ?key=... হিসেবে যাবে।
-        'cron_key'   => 'CHANGE_ME_cron_4f8b2e6a9c1d3f7b5e0a8c2d6f4b9e1a',
+        'cron_key'   => 'kSA7XzDEu-szQYULgP2Xa36hlWDCx4cX',
 
         'max_depth'      => 3,
         'timeout'        => 45,   // প্রতি রিকোয়েস্টে সেকেন্ড
