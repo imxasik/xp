@@ -1,0 +1,62 @@
+# BAF Weather Mirror — GitHub Actions workflow
+name: BAF WX Mirror
+
+on:
+  schedule:
+    # প্রতি ১০ মিনিটে। GitHub-এর সর্বনিম্ন ৫ মিনিট, তবে ব্যস্ত সময়ে
+    # ১০–৩০ মিনিট দেরি হওয়া স্বাভাবিক — সেটা মেনে নিতে হবে।
+    - cron: '*/5 * * * *'
+  workflow_dispatch:        # Actions ট্যাব থেকে হাতে চালানোর বোতাম
+  push:
+    branches: [main]
+
+# একসাথে দুটো রান নয়
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write           # gh-pages ব্রাঞ্চে লিখতে
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: কোড আনা
+        uses: actions/checkout@v4
+
+      - name: PHP বসানো
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, gd, mbstring, json
+          coverage: none
+
+      # আগের রানে নামানো ছবি ফিরিয়ে আনি — তাহলে 304 কাজ করে
+      # আর অপরিবর্তিত ছবি আবার নামাতে হয় না
+      - name: আগের ডেটা ফেরানো
+        uses: actions/cache@v4
+        with:
+          path: server/data
+          key: wxdata-${{ github.run_id }}
+          restore-keys: wxdata-
+
+      - name: ছবি আনা ও সাইট বানানো
+        env:
+          BUILD_TRIES: '5'
+          DIST_DIR: ${{ github.workspace }}/dist
+        run: php deploy/build-static.php
+
+      - name: GitHub Pages-এ প্রকাশ
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          # ⭐ ইতিহাস রাখি না — নাহলে প্রতি রানে ২ MB জমে রিপো ফুলে যাবে
+          force_orphan: true
+          user_name: 'wx-bot'
+          user_email: 'wx-bot@users.noreply.github.com'
+          commit_message: 'ছবি আপডেট'
